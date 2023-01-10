@@ -1,0 +1,164 @@
+	
+# 4.1.2 表的加法 —— UNION
+## 对同一张表求并集（可以用union也可以用or
+### 练习题1：假设连锁店想增加毛利率超过50%或者售价低于800的货物的存货量，请使用UNION对分别满足上述两个条件的商品的查询结果求并集
+SELECT product_id,product_name,product_type,sale_price,purchase_price
+FROM product
+WHERE sale_price > purchase_price*150%
+UNION 
+SELECT product_id,product_name,product_type,sale_price,purchase_price
+FROM product
+WHERE sale_price < 800;
+
+### 练习题2：分别使用UNION或者OR谓词，找出毛利率不足30%或者毛利率未知的商品
+# 1.使用OR谓词
+SELECT * FROM product
+WHERE sale_price < purchase_price*1.3
+OR sale_price/purchase_pricec IS NULL;
+# 2.使用UNION
+SELECT * FROM product
+WHERE sale_price < purchase_price*1.3
+UNION
+SELECT * FROM product
+WHERE sale_price/purchase_pricec IS NULL;
+
+
+#4.1.4 差集、补集与表的减法
+### 练习题3：找出只存在于product表但不存在于product2表的商品
+SELECT *
+FROM product
+WHERE product_id NOT IN (SELECT product_id FROM product2);
+
+
+#4.2.1 内连接(INNER JOIN)
+### 练习题4：找出每个商店里的衣服类商品的名称及价格等信息
+# 法1：不使用子查询
+SELECT
+	sp.shop.id,
+	sp.shop_name,
+	sp.product_id,
+	p.product_name,
+	p.product_type,
+	p.purchase_price
+FROM
+	ShopProduct sp
+INNER JOIN
+	Product p
+ON
+	sp.product_id = p.product_id
+WHERE
+	p.product_type = "衣服";
+
+# 法2：使用子查询
+SELECT
+	sp.shop.id,
+	sp.shop_name,
+	sp.product_id,
+	p.product_name,
+	p.product_type,
+	p.purchase_price
+FROM
+	(SELECT
+		shop_id,
+		shop_name,
+		sp.product_id
+	FROM
+		ShopProduct) AS sp
+INNER JOIN
+	(SELECT
+		p.product_id,
+		product_name,
+		product_type,
+		purchase_price
+	FROM
+		Product
+	WHERE
+		product_type = '衣服') AS p
+ON
+	sp.product_id = p.product_id;
+
+
+# 练习题部分
+## 4。1 找出product和product2中售价高于500的商品的基本信息
+
+SELECT *
+FROM
+	product
+WHERE
+	sale_price >500
+UNION
+SELECT *
+FROM
+	product2
+WHERE
+	sale_price >500;
+
+
+## 4.2 借助对称差的实现方式，求product和product2的交集
+SELECT *
+FROM
+	product p1
+INNER JOIN
+	product2 p2
+ON p1.product_id = p2.product_id;
+
+
+## 4.3 每类商品中售价最高的商品都在哪些商店有售
+SELECT
+	shop_name
+FROM
+	(
+	SELECT
+		product_name,
+		product_id,
+		product_type,
+		sale_price
+	FROM
+		Product p
+	WHERE
+		sale_price IN (SELECT
+					MAX(sale_price),
+					product_type
+				FROM
+					Product
+				GROUP BY
+					product_type)	
+		) p1
+INNER JOIN
+	ShopProduct sp
+ON p1.product_id = sp.product_id;
+
+
+## 4.4 分别使用内连接和关联子查询 每一类商品中售价最高的商品
+SELECT
+	product_name
+FROM
+	Product
+WHERE sale_price IN (
+			SELECT
+				MAX(sale_price),
+				product_type,
+				product_name
+			FROM
+				Product
+			GROUP BY
+				product_type
+)
+	
+
+SELECT
+	product_name,
+	p1.product_id
+FROM
+	Product p1
+INNER JOIN
+			(SELECT
+				MAX(sale_price),
+				product_type,
+				product_name,
+				product_id
+			FROM
+				Product
+			GROUP BY
+				product_type) p2
+WHERE p1.product_id = p2.product_id;
